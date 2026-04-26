@@ -521,8 +521,8 @@ body{
       </div>
     </div>
 
-    <!-- Barra de API Key -->
-    <div class="apikey-bar">
+    <!-- Barra de API Key oculta -->
+    <div class="apikey-bar" style="display:none">
       <label>API KEY</label>
       <input type="password" id="apikey-input"
         placeholder="sk-ant-api03-..."
@@ -803,7 +803,8 @@ function initApp() {
   selectCluster(DATA.clusters[0].id);
 }
 
-// ── API KEY STATUS ────────────────────────────────────────────
+// ── API KEY — reemplaza con tu key antes del pitch ────────────
+const ANTHROPIC_API_KEY = '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';
 function updateApiKeyStatus() {
   const key = document.getElementById('apikey-input').value.trim();
   const status = document.getElementById('apikey-status');
@@ -1042,7 +1043,7 @@ async function sendMsg() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': document.getElementById('apikey-input').value.trim(),
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
