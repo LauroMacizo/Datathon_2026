@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Havi 2.0 — Hey Banco</title>
+<link rel="icon" type="image/png" href="hey_banco_web_logo.png">
+<link rel="shortcut icon" href="hey_banco_web_logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Blanco y negro puro */
+  --bg:  #F8F8F8;
+  --s1:  #FFFFFF;
+  --s2:  #F3F3F3;
+  --s3:  #EBEBEB;
+  --s4:  #E0E0E0;
+
+  --b1: #E8E8E8;
+  --b2: #D4D4D4;
+  --b3: #BEBEBE;
+
+  --t1: #0A0A0A;
+  --t2: #444444;
+  --t3: #888888;
+  --t4: #BBBBBB;
+
+  /* Acento: negro puro para interacciones */
+  --acc:     #0A0A0A;
+  --acc-dim: #0A0A0A0D;
+  --acc-glow:#0A0A0A22;
+
+  /* Semánticos — solo para las gráficas, no tocar */
+  --green:  #00B569;
+  --gdim:   #00B56912;
+  --gglow:  #00B56930;
+  --red:    var(--acc);
+  --rdim:   var(--acc-dim);
+  --amber:  #F59E0B;
+  --adim:   #F59E0B12;
+  --blue:   #3B82F6;
+  --bdim:   #3B82F612;
+  --purple: #8B5CF6;
+  --teal:   #0EA5E9;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.09);
+}
+
+body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:'Inter',sans-serif;
+  height:100vh;overflow:hidden;
+  display:flex;flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── TOPBAR HEY BANCO ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:56px;
+  background:var(--s1);
+  border-bottom:1px solid var(--b1);
+  flex-shrink:0;z-index:10;
+  box-shadow:var(--shadow-sm);
+}
+.logo{display:flex;align-items:center;gap:10px}
+
+/* SVG logo Hey Banco */
+.logo-svg{height:22px;width:auto;flex-shrink:0}
+
+.logo-sep{width:1px;height:18px;background:var(--b2);margin:0 2px}
+.logo-product{
+  font-size:13px;font-weight:600;color:var(--t2);
+  letter-spacing:-.01em;
+}
+.logo-badge{
+  font-size:9px;font-weight:600;
+  background:var(--acc-dim);
+  color:var(--acc);
+  border:1px solid var(--acc-glow);
+  padding:2px 8px;border-radius:20px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.topbar-stats{display:flex;gap:6px;align-items:center}
+.stat-chip{
+  font-size:11px;font-weight:500;
+  padding:4px 10px;border-radius:6px;
+  background:var(--s2);border:1px solid var(--b1);
+  color:var(--t2);font-family:'JetBrains Mono',monospace;
+}
+.stat-chip.green{
+  color:var(--green);
+  border-color:var(--gglow);
+  background:var(--gdim);
+}
+.stat-chip.hey{
+  color:var(--acc);
+  border-color:var(--acc-glow);
+  background:var(--acc-dim);
+}
+
+/* ── LOADING ── */
+#loading{
+  position:fixed;inset:0;background:var(--s1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;z-index:999;
+}
+.loading-logo{
+  width:52px;height:52px;border-radius:16px;
+  background:var(--acc);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px var(--acc-glow);
+}
+.loading-text{font-size:13px;color:var(--t2);font-weight:500}
+.loading-bar{width:180px;height:2px;background:var(--s3);border-radius:2px;overflow:hidden}
+.loading-fill{
+  height:100%;
+  background:var(--acc);
+  border-radius:2px;
+  animation:load 1.8s ease-in-out infinite;
+}
+@keyframes load{
+  0%{width:0%;margin-left:0}
+  50%{width:60%;margin-left:20%}
+  100%{width:0%;margin-left:100%}
+}
+.error-box{
+  max-width:420px;padding:24px;
+  background:var(--rdim);border:1px solid var(--acc-glow);
+  border-radius:16px;text-align:center;display:none;
+}
+.error-box h3{color:var(--acc);font-size:14px;margin-bottom:8px;font-weight:600}
+.error-box p{color:var(--t2);font-size:12px;line-height:1.6}
+.error-box code{
+  display:block;margin-top:12px;padding:10px;
+  background:var(--s2);border-radius:8px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--acc);
+}
+
+/* ── MAIN LAYOUT ── */
+#app{display:none;flex:1;overflow:hidden;display:grid;grid-template-columns:220px 1fr 280px;min-height:0}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--s1);
+  border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.sidebar-section{padding:14px 12px 8px}
+.sidebar-label{
+  font-size:9px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);padding:0 4px;margin-bottom:8px;
+}
+.seg-btn{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:10px;
+  border:1px solid transparent;cursor:pointer;
+  background:transparent;text-align:left;margin-bottom:3px;
+  transition:all .15s;font-family:'Inter',sans-serif;
+}
+.seg-btn:hover{background:var(--s2)}
+.seg-btn.active{
+  background:var(--s2);
+  border-color:var(--b2);
+  box-shadow:var(--shadow-sm);
+}
+.seg-dot{
+  width:8px;height:8px;border-radius:50%;
+  flex-shrink:0;
+}
+.seg-name{font-size:12px;font-weight:500;color:var(--t1)}
+.seg-sub{font-size:10px;color:var(--t3);margin-top:1px;font-family:'JetBrains Mono',monospace}
+
+.divider{height:1px;background:var(--b1);margin:8px 12px}
+
+.metric-item{padding:6px 14px;margin-bottom:2px}
+.m-label{
+  font-size:9px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--t3);
+  font-weight:600;margin-bottom:3px;
+}
+.m-val{
+  font-size:18px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--t1);letter-spacing:-.02em;
+}
+.m-sub{font-size:9px;color:var(--t3);margin-top:2px}
+
+/* PCA */
+.pca-wrap{padding:10px 14px 14px}
+.pca-title{
+  font-size:9px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--t3);
+  font-weight:600;margin-bottom:8px;
+}
+#pcaChart{width:100%!important;height:130px!important}
+
+/* ── CHAT AREA ── */
+.chat-area{display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+
+.chat-header{
+  padding:12px 20px;
+  border-bottom:1px solid var(--b1);
+  background:var(--s1);
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow-sm);
+}
+.user-row{display:flex;align-items:center;gap:10px}
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;
+  flex-shrink:0;
+}
+.u-name{font-size:13px;font-weight:600;color:var(--t1)}
+.u-meta{font-size:10px;color:var(--t3);margin-top:1px}
+.mode-row{
+  display:flex;background:var(--s2);
+  border-radius:8px;padding:3px;gap:2px;
+  border:1px solid var(--b1);
+}
+.mode-btn{
+  font-size:11px;font-weight:500;
+  padding:5px 14px;border-radius:6px;
+  border:none;cursor:pointer;
+  background:transparent;color:var(--t3);
+  transition:all .15s;font-family:'Inter',sans-serif;
+}
+.mode-btn.active{
+  background:var(--s1);color:var(--t1);
+  font-weight:600;
+  box-shadow:var(--shadow-sm);
+}
+
+/* ── MENSAJES ── */
+.msgs{
+  flex:1;overflow-y:auto;
+  padding:20px 24px;
+  display:flex;flex-direction:column;
+  gap:10px;min-height:0;
+}
+.msg{
+  max-width:78%;padding:10px 14px;
+  border-radius:14px;font-size:13px;
+  line-height:1.55;
+}
+.msg.user{
+  align-self:flex-end;
+  background:var(--acc);
+  color:#fff;
+  border-bottom-right-radius:4px;
+  box-shadow:0 2px 8px var(--acc-glow);
+}
+.msg.havi{
+  align-self:flex-start;
+  background:var(--s1);
+  border:1px solid var(--b1);
+  color:var(--t2);
+  border-bottom-left-radius:4px;
+  box-shadow:var(--shadow-sm);
+}
+.msg.proactive{
+  background:var(--s1);
+  border:1px solid var(--acc-glow);
+  color:var(--t1);
+  box-shadow:0 2px 12px var(--acc-dim);
+}
+.proactive-tag{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;
+  color:var(--acc);
+  background:var(--acc-dim);
+  border:1px solid var(--acc-glow);
+  padding:2px 7px;border-radius:4px;margin-bottom:6px;
+}
+.divider-msg{display:flex;align-items:center;gap:8px;margin:6px 0}
+.divider-line{flex:1;height:1px;background:var(--b1)}
+.divider-txt{
+  font-size:9px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.08em;
+  color:var(--t4);white-space:nowrap;
+}
+.proactive-banner{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:500;
+  color:var(--acc);
+  background:var(--acc-dim);
+  border:1px solid var(--acc-glow);
+  border-radius:8px;padding:8px 14px;margin-bottom:12px;
+}
+
+/* ── INPUT ── */
+.chat-input-wrap{
+  padding:14px 20px;
+  border-top:1px solid var(--b1);
+  background:var(--s1);flex-shrink:0;
+}
+.chat-input{
+  display:flex;align-items:center;gap:8px;
+  background:var(--s2);
+  border:1.5px solid var(--b2);
+  border-radius:12px;padding:8px 8px 8px 14px;
+  transition:border-color .15s;
+}
+.chat-input:focus-within{border-color:var(--acc-glow)}
+.chat-input input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-size:13px;color:var(--t1);font-family:'Inter',sans-serif;
+}
+.chat-input input::placeholder{color:var(--t4)}
+.send-btn{
+  width:32px;height:32px;border-radius:9px;
+  background:var(--acc);border:none;cursor:pointer;
+  color:#fff;font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+  box-shadow:0 2px 8px var(--acc-glow);
+}
+.send-btn:hover{background:var(--acc);transform:scale(1.04)}
+.send-btn:active{transform:scale(.96)}
+
+/* ── RIGHT PANEL ── */
+.rpanel{
+  background:var(--s1);
+  border-left:1px solid var(--b1);
+  display:flex;flex-direction:column;min-height:0;
+}
+.rpanel-head{
+  padding:14px 16px;
+  border-bottom:1px solid var(--b1);
+  font-size:9px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);flex-shrink:0;
+}
+.rtabs{
+  display:flex;
+  border-bottom:1px solid var(--b1);
+  flex-shrink:0;
+}
+.rtab{
+  flex:1;padding:10px 6px;
+  text-align:center;font-size:11px;font-weight:500;
+  color:var(--t3);border:none;background:transparent;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all .15s;font-family:'Inter',sans-serif;
+}
+.rtab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.rbody{flex:1;overflow-y:auto;padding:12px}
+
+.fcard{
+  background:var(--s2);border:1px solid var(--b1);
+  border-radius:10px;padding:10px 12px;margin-bottom:7px;
+}
+.fcard-label{
+  font-size:9px;font-weight:600;color:var(--t3);
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;
+}
+.fcard-val{
+  font-size:12px;font-weight:500;
+  font-family:'JetBrains Mono',monospace;color:var(--t1);
+}
+.fcard-bar{height:2px;background:var(--b2);border-radius:1px;margin-top:7px}
+.fcard-fill{height:2px;border-radius:1px;transition:width .5s}
+
+.acard{
+  background:var(--s2);border:1px solid var(--b1);
+  border-radius:10px;padding:10px 12px;margin-bottom:7px;
+  transition:border-color .15s;
+}
+.acard.top{border-color:var(--acc-glow);background:var(--acc-dim)}
+.acard-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.acard-name{font-size:12px;font-weight:500;color:var(--t1)}
+.acard-score{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.sbar{height:2px;background:var(--b2);border-radius:1px;margin-top:8px}
+.sfill{height:2px;border-radius:1px;transition:width .4s}
+
+.signal{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:9px 0;border-bottom:1px solid var(--b1);font-size:12px;
+}
+.signal:last-child{border:none}
+.signal-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.signal-text{color:var(--t2);line-height:1.5}
+.signal-text strong{color:var(--t1);font-weight:600}
+.signal.bert{background:var(--s2);border-radius:8px;border:1px solid var(--b2);margin-bottom:6px;padding:8px 10px}
+
+/* SILHOUETTE */
+.sil-wrap{padding:10px 14px 14px;border-top:1px solid var(--b1)}
+.sil-title{
+  font-size:9px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--t3);
+  font-weight:600;margin-bottom:8px;
+}
+#silChart{width:100%!important;height:80px!important}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeUp .2s ease both}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── API KEY BAR ── */
+.apikey-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 18px;background:var(--s2);
+  border-bottom:1px solid var(--b1);flex-shrink:0;
+}
+.apikey-bar label{font-size:10px;font-weight:600;color:var(--t3);white-space:nowrap;letter-spacing:.04em}
+.apikey-bar input{
+  flex:1;background:var(--s1);border:1px solid var(--b2);
+  border-radius:7px;padding:5px 10px;font-size:11px;
+  color:var(--t2);font-family:'JetBrains Mono',monospace;outline:none;
+}
+.apikey-bar input:focus{border-color:var(--acc)}
+.apikey-bar input::placeholder{color:var(--t4)}
+.apikey-status{
+  font-size:10px;font-weight:600;white-space:nowrap;
+  padding:3px 10px;border-radius:20px;
+}
+.apikey-status.ok{background:var(--gdim);color:var(--green);border:1px solid var(--gglow)}
+.apikey-status.empty{background:var(--s3);color:var(--t3);border:1px solid var(--b2)}
+
+/* Scrollbar minimalista */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--b3)}
+
+/* ── LOGO HEY BANCO ── */
+.logo-sep{width:1px;height:20px;background:var(--b2);margin:0 12px}
+.logo-product{font-size:13px;font-weight:600;color:var(--t2);letter-spacing:-.01em}
+/* chip bw */
+.stat-chip.bw{color:var(--t1);border-color:var(--b2);background:var(--s2);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loading-logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <path d="M5 4h4.5v8.5h9V4H23v20h-4.5v-8.5h-9V24H5V4z" fill="white"/>
+    </svg>
+  </div>
+  <div class="loading-text">Cargando datos del pipeline…</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+  <div class="error-box" id="error-box">
+    <h3>No se encontró havi_output.json</h3>
+    <p>Primero corre el pipeline de Python para generar los datos reales:</p>
+    <code>python pipeline_havi.py</code>
+    <p style="margin-top:10px;font-size:12px">Asegúrate de que <strong>havi_output.json</strong> y <strong>havi_mockup.html</strong> estén en la misma carpeta.</p>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <!-- Logo Hey Banco — imagen original -->
+    <!-- Pon el archivo de imagen en la misma carpeta que este HTML -->
+    <!-- y cambia el nombre en src si es diferente -->
+    <img
+      src="hey_banco_logo.png"
+      alt="hey, banco"
+      style="height:22px;width:auto;flex-shrink:0;object-fit:contain"
+      onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'"
+    />
+    <!-- Fallback si la imagen no carga -->
+    <span id="logo-fallback" style="display:none;font-family:Georgia,serif;font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-0.5px">hey, <span style="font-family:'Helvetica Neue',sans-serif;font-weight:400;font-size:14px;letter-spacing:1px">banco</span></span>
+    <div class="logo-sep"></div>
+    <span class="logo-product">Havi 2.0</span>
+    <span class="logo-badge">Demo</span>
+  </div>
+  <div class="topbar-stats" id="topbar-stats"></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Segmentos detectados</div>
+      <div id="seg-btns"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Métricas del cluster</div>
+      <div id="metrics"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="pca-wrap">
+      <div class="pca-title">PCA 2D — clusters</div>
+      <canvas id="pcaChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="user-row">
+        <div class="avatar" id="u-avatar">?</div>
+        <div>
+          <div class="u-name" id="u-name">—</div>
+          <div class="u-meta" id="u-meta">—</div>
+        </div>
+      </div>
+      <div class="mode-row">
+        <button class="mode-btn" id="btn-actual" onclick="setMode('actual')">Havi actual</button>
+        <button class="mode-btn active" id="btn-v2" onclick="setMode('v2')">Havi 2.0 · Claude</button>
+      </div>
+    </div>
+
+    <!-- Barra de API Key -->
+    <div class="apikey-bar">
+      <label>API KEY</label>
+      <input type="password" id="apikey-input"
+        placeholder="sk-ant-api03-..."
+        oninput="updateApiKeyStatus()"
+        autocomplete="off"
+      />
+      <span class="apikey-status empty" id="apikey-status">Sin configurar</span>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="chat-input-wrap">
+      <div class="chat-input">
+        <input id="inp" type="text" placeholder="Escribe un mensaje…" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send-btn" onclick="sendMsg()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rpanel">
+    <div class="rpanel-head">Motor de contexto</div>
+    <div class="rtabs">
+      <button class="rtab active" onclick="rTab('features',this)">Features</button>
+      <button class="rtab" onclick="rTab('acciones',this)">Acciones</button>
+      <button class="rtab" onclick="rTab('senales',this)">Señales</button>
+    </div>
+    <div class="rbody" id="rbody"></div>
+
+    <div class="sil-wrap">
+      <div class="sil-title">Silhouette score por k</div>
+      <canvas id="silChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let DATA = null;
+let currentCluster = 0;
+let currentMode = 'v2';
+let currentRTab = 'features';
+let pcaChart = null;
+let silChart = null;
+
+// ── DEMO DATA (fallback cuando no hay havi_output.json) ───────
+const DEMO_DATA = {
+  stats: {
+    total_usuarios: 24000, num_clusters: 4, silhouette_score: 0.61,
+    tiene_conv: true, total_features: 32, fecha_proceso: new Date().toISOString()
+  },
+  elbow: [
+    {k:2,sil:0.31},{k:3,sil:0.44},{k:4,sil:0.61},
+    {k:5,sil:0.55},{k:6,sil:0.49},{k:7,sil:0.43}
+  ],
+  clusters: [
+    {
+      id:0, tipo:'nomina', nombre:'Nómina joven', color:'#00D17A', icon:'💳',
+      num_usuarios:8160, pct_usuarios:34.0,
+      metricas:{ ticket_prom:'$487', dias_sin_login:'3.2', tasa_fallo:'4.1%', utilizacion_credito:'32%', sentimiento:'0.42' },
+      accion_top:'Activar Hey Pro',
+      top_acciones:[
+        {nombre:'Activar Hey Pro',        score:0.87, top:true},
+        {nombre:'Cashback awareness',      score:0.61},
+        {nombre:'Cross-sell seguro',       score:0.34},
+      ],
+      feature_cards:[
+        {label:'ticket_prom',         val:'487.00', bar:48},
+        {label:'cashback_total',      val:'156.00', bar:78},
+        {label:'tasa_txn_fallida',    val:'0.041',  bar:20},
+        {label:'utilizacion_credito', val:'0.320',  bar:32},
+        {label:'dias_ultima_txn',     val:'3.200',  bar:10},
+        {label:'pct_msgs_negativos',  val:'0.079',  bar:15},
+        {label:'num_conversaciones',  val:'4.100',  bar:41},
+        {label:'es_hey_pro',          val:'0.000',  bar:0 },
+      ],
+      senales:[
+        {icon:'💡', text:'Cashback acumulado <strong>$156</strong> sin Hey Pro activo'},
+        {icon:'📱', text:'<strong>38% del gasto</strong> en delivery — patrón constante 3 meses'},
+        {icon:'✅', text:'Sentimiento <strong>positivo</strong> en últimas conversaciones'},
+        {icon:'🚫', text:'<strong>No tiene Hey Pro</strong> — único producto activo es débito'},
+      ],
+      conv_actual:[
+        {type:'divider', text:'Havi hoy — reactivo'},
+        {type:'user',    text:'¿Qué es Hey Pro?'},
+        {type:'havi',    text:'Hey Pro es nuestra suscripción premium con cashback en todas tus compras. ¿Te gustaría más información?'},
+        {type:'user',    text:'¿Cuánto cuesta?'},
+        {type:'havi',    text:'Hey Pro tiene un costo mensual. Incluye cashback de hasta 3% y beneficios exclusivos.'},
+      ],
+      conv_v2:[
+        {type:'divider',  text:'Havi 2.0 — proactivo'},
+        {type:'havi', proactive:true, text:'¡Hola Ana! Noté que el 38% de tus compras son en delivery — en el último mes generaste $156 de cashback potencial que no estás aprovechando. Con Hey Pro eso se convierte en recompensa real. ¿Te cuento cómo?'},
+        {type:'user',     text:'Sí, cuéntame más'},
+        {type:'havi', proactive:true, text:'Con tu patrón de gasto actual recuperarías el costo de Hey Pro en solo 3 semanas. Y con tu nómina domiciliada obtienes el primer mes gratis. ¿Lo activamos ahora?'},
+      ],
+      pca_sample: Array.from({length:120}, (_,i) => ({x: -2+Math.random()*2.5, y: 0.5+Math.random()*2}))
+    },
+    {
+      id:1, tipo:'negocio', nombre:'Negocio activo', color:'#4D9EFF', icon:'🏢',
+      num_usuarios:6720, pct_usuarios:28.0,
+      metricas:{ ticket_prom:'$2,840', dias_sin_login:'1.1', tasa_fallo:'11.3%', utilizacion_credito:'89%', sentimiento:'-0.08' },
+      accion_top:'Aumento límite crédito',
+      top_acciones:[
+        {nombre:'Aumento límite crédito',  score:0.91, top:true},
+        {nombre:'Alerta saldo / riesgo',   score:0.88},
+        {nombre:'Cross-sell seguro',       score:0.52},
+      ],
+      feature_cards:[
+        {label:'ticket_prom',         val:'2840.00', bar:94},
+        {label:'utilizacion_credito', val:'0.890',   bar:89},
+        {label:'tasa_txn_fallida',    val:'0.113',   bar:56},
+        {label:'num_productos_activos',val:'4.000',  bar:80},
+        {label:'dias_ultima_txn',     val:'1.100',   bar:5 },
+        {label:'pct_msgs_negativos',  val:'0.210',   bar:21},
+        {label:'num_conversaciones',  val:'7.300',   bar:73},
+        {label:'es_hey_pro',          val:'0.620',   bar:62},
+      ],
+      senales:[
+        {icon:'⚠️', text:'Utilización de crédito al <strong>89%</strong> — umbral crítico superado'},
+        {icon:'🔴', text:'<strong>3 rechazos</strong> en los últimos 7 días por saldo insuficiente'},
+        {icon:'📅', text:'<strong>Pagos programados esta semana</strong> — riesgo de rechazo'},
+        {icon:'✅', text:'<strong>Historial limpio</strong> — elegible para aumento de límite'},
+        {icon:'😤', text:'<strong>21% de mensajes negativos</strong> — frustración creciente'},
+      ],
+      conv_actual:[
+        {type:'divider', text:'Havi hoy — reactivo'},
+        {type:'user',    text:'Me rechazaron un pago con la tarjeta de crédito'},
+        {type:'havi',    text:'Lamento el inconveniente. Puede deberse a fondos insuficientes o límite alcanzado. ¿Desea revisar su saldo disponible?'},
+        {type:'user',    text:'Sí por favor'},
+        {type:'havi',    text:'Revisando tu información...'},
+      ],
+      conv_v2:[
+        {type:'divider',  text:'Havi 2.0 — proactivo'},
+        {type:'havi', proactive:true, text:'Roberto, detecté que tu utilización de crédito llegó al 89% — estás a $1,100 de tu límite. Tienes pagos a proveedores programados esta semana. Hay riesgo de rechazo. ¿Quieres solicitar un aumento de límite ahora?'},
+        {type:'user',     text:'Sí, ¿cómo lo hago?'},
+        {type:'havi', proactive:true, text:'Con base en tu historial de 18 meses sin atrasos, tienes pre-aprobado un aumento. Puedo solicitarlo ahora mismo — la respuesta es inmediata. ¿Confirmas?'},
+      ],
+      pca_sample: Array.from({length:100}, (_,i) => ({x: 1+Math.random()*2.5, y: 1+Math.random()*2}))
+    },
+    {
+      id:2, tipo:'dormido', nombre:'Usuario dormido', color:'#666688', icon:'💤',
+      num_usuarios:5280, pct_usuarios:22.0,
+      metricas:{ ticket_prom:'$0', dias_sin_login:'47.0', tasa_fallo:'0.0%', utilizacion_credito:'0%', sentimiento:'0.11' },
+      accion_top:'Reactivación',
+      top_acciones:[
+        {nombre:'Reactivación con incentivo', score:0.85, top:true},
+        {nombre:'Ahorro automático',          score:0.79},
+        {nombre:'Nómina domiciliada',         score:0.45},
+      ],
+      feature_cards:[
+        {label:'dias_ultima_txn',     val:'47.000', bar:94},
+        {label:'num_conversaciones',  val:'0.000',  bar:0 },
+        {label:'num_productos_activos',val:'1.000', bar:10},
+        {label:'saldo_promedio',      val:'280.00', bar:28},
+        {label:'ticket_prom',         val:'0.000',  bar:0 },
+        {label:'tasa_txn_fallida',    val:'0.000',  bar:0 },
+        {label:'pct_msgs_negativos',  val:'0.000',  bar:0 },
+        {label:'es_hey_pro',          val:'0.000',  bar:0 },
+      ],
+      senales:[
+        {icon:'💤', text:'<strong>47 días sin login</strong> — riesgo alto de abandono'},
+        {icon:'💵', text:'<strong>$280 en saldo inactivo</strong> — nunca ha activado ahorro'},
+        {icon:'📭', text:'<strong>Cero conversaciones</strong> con Havi en 60 días'},
+        {icon:'📦', text:'Solo <strong>1 producto activo</strong> — bajo engagement'},
+        {icon:'🕐', text:'Último acceso un <strong>domingo por la tarde</strong>'},
+      ],
+      conv_actual:[
+        {type:'divider', text:'Havi hoy — reactivo'},
+        {type:'havi',    text:'Hola, ¿en qué te puedo ayudar hoy?'},
+      ],
+      conv_v2:[
+        {type:'divider',  text:'Havi 2.0 — proactivo'},
+        {type:'havi', proactive:true, text:'¡Hola María! Han pasado 47 días desde tu última visita. Mientras tanto, acumulaste $280 en saldo que podrías estar haciendo crecer. ¿Te cuento cómo en 2 minutos?'},
+        {type:'user',     text:'¿Qué beneficios tiene?'},
+        {type:'havi', proactive:true, text:'Tu saldo de $280 puede generar rendimiento anual sin hacer nada — solo activando el módulo de ahorro automático. Muchos usuarios lo activan en menos de 1 minuto.'},
+      ],
+      pca_sample: Array.from({length:80}, (_,i) => ({x: -1+Math.random()*2, y: -2+Math.random()*2}))
+    },
+    {
+      id:3, tipo:'riesgo', nombre:'Alto riesgo', color:'#FF4D6A', icon:'⚠️',
+      num_usuarios:3840, pct_usuarios:16.0,
+      metricas:{ ticket_prom:'$145', dias_sin_login:'8.0', tasa_fallo:'34.0%', utilizacion_credito:'78%', sentimiento:'-0.61' },
+      accion_top:'Alerta saldo / riesgo',
+      top_acciones:[
+        {nombre:'Intervención de retención', score:0.94, top:true},
+        {nombre:'Revisión límites dinámicos', score:0.88},
+        {nombre:'Alerta fraude preventiva',  score:0.71},
+      ],
+      feature_cards:[
+        {label:'tasa_txn_fallida',    val:'0.340',  bar:68},
+        {label:'pct_msgs_negativos',  val:'0.610',  bar:61},
+        {label:'patron_atipico_txn',  val:'1.000',  bar:100},
+        {label:'utilizacion_credito', val:'0.780',  bar:78},
+        {label:'dias_ultima_txn',     val:'8.000',  bar:20},
+        {label:'num_conversaciones',  val:'9.200',  bar:92},
+        {label:'ticket_prom',         val:'145.00', bar:14},
+        {label:'es_hey_pro',          val:'0.210',  bar:21},
+      ],
+      senales:[
+        {icon:'🚨', text:'<strong>34% de transacciones fallidas</strong> — percentil 95 del dataset'},
+        {icon:'😠', text:'Sentimiento NLP <strong>-0.61</strong> — alto riesgo de churn'},
+        {icon:'⚡', text:'<strong>Patrón atípico detectado</strong> — posible fraude o problema de límites'},
+        {icon:'🔁', text:'<strong>6 rechazos esta semana</strong> en horario inusual'},
+        {icon:'📣', text:'<strong>Conversación activa</strong> — ventana de intervención abierta'},
+      ],
+      conv_actual:[
+        {type:'divider', text:'Havi hoy — reactivo'},
+        {type:'user',    text:'¡Mi tarjeta no funciona! Es la tercera vez esta semana'},
+        {type:'havi',    text:'Entiendo tu frustración. Voy a revisar el estado de tu tarjeta. Por favor espera un momento.'},
+        {type:'user',    text:'Siempre pasa lo mismo, están muy mal'},
+        {type:'havi',    text:'Lamento los inconvenientes. ¿Deseas que transfiera tu caso a soporte?'},
+      ],
+      conv_v2:[
+        {type:'divider',  text:'Havi 2.0 — proactivo'},
+        {type:'havi', proactive:true, text:'Carlos, detecté 3 transacciones rechazadas esta mañana en la misma gasolinera. Bloqueé preventivamente la tarjeta para protegerte y generé una tarjeta virtual temporal. ¿Confirmas que eras tú?'},
+        {type:'user',     text:'Sí era yo, necesitaba cargar gasolina'},
+        {type:'havi', proactive:true, text:'Perfecto, ya desbloqueé la tarjeta. Aumenté tu límite diario temporalmente. ¿Quieres activar alertas en tiempo real para evitar esto en el futuro?'},
+      ],
+      pca_sample: Array.from({length:60}, (_,i) => ({x: 2+Math.random()*2, y: -1+Math.random()*2}))
+    },
+  ]
+};
+
+// ── LOAD JSON ─────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('havi_output.json');
+    if (!res.ok) throw new Error('404');
+    DATA = await res.json();
+    console.log('✓ Datos reales cargados desde havi_output.json');
+    initApp();
+  } catch(e) {
+    // Si no hay JSON real, usa los datos de demo — funciona sin servidor
+    console.log('ℹ️ havi_output.json no encontrado — usando datos de demo');
+    DATA = DEMO_DATA;
+    initApp();
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+function initApp() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+
+  // Topbar stats
+  const s = DATA.stats;
+  document.getElementById('topbar-stats').innerHTML = `
+    <span class="stat-chip bw">k=${s.num_clusters} · sil ${s.silhouette_score}</span>
+    <span class="stat-chip">${s.total_usuarios.toLocaleString()} usuarios</span>
+    <span class="stat-chip">${s.total_features} features</span>
+    ${s.tiene_conv
+      ? (s.tiene_bert
+          ? '<span class="stat-chip bw">BERT activo</span>'
+          : '<span class="stat-chip">NLP keywords</span>')
+      : '<span class="stat-chip">Sin conv.</span>'}
+  `;
+
+  // Segment buttons
+  const btnWrap = document.getElementById('seg-btns');
+  DATA.clusters.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'seg-btn' + (i === 0 ? ' active' : '');
+    btn.id = `seg-btn-${c.id}`;
+    btn.innerHTML = `
+      <span class="seg-dot" style="color:${c.color};background:${c.color}"></span>
+      <div class="seg-text">
+        <div class="seg-name">${c.nombre}</div>
+        <div class="seg-sub">cluster ${c.id} · ${c.pct_usuarios}%</div>
+      </div>`;
+    btn.onclick = () => selectCluster(c.id);
+    btnWrap.appendChild(btn);
+  });
+
+  // Charts
+  buildPCA();
+  buildSilhouette();
+
+  // Initial render
+  selectCluster(DATA.clusters[0].id);
+}
+
+// ── API KEY STATUS ────────────────────────────────────────────
+function updateApiKeyStatus() {
+  const key = document.getElementById('apikey-input').value.trim();
+  const status = document.getElementById('apikey-status');
+  if (key.startsWith('sk-ant')) {
+    status.textContent = '✓ Configurada';
+    status.className = 'apikey-status ok';
+  } else {
+    status.textContent = 'Sin configurar';
+    status.className = 'apikey-status empty';
+  }
+}
+
+// ── SELECT CLUSTER ────────────────────────────────────────────
+function selectCluster(id) {
+  currentCluster = id;
+  // Limpiar historial al cambiar de segmento
+  if (chatHistory[id]) chatHistory[id] = [];
+  const c = DATA.clusters.find(x => x.id === id);
+  if (!c) return;
+
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`seg-btn-${id}`).classList.add('active');
+
+  renderMetrics(c);
+  renderHeader(c);
+  renderChat(c);
+  renderRPanel(c);
+  highlightPCA(id);
+}
+
+// ── METRICS ───────────────────────────────────────────────────
+function renderMetrics(c) {
+  const m = c.metricas;
+  const sentVal = parseFloat(m.sentimiento);
+  const sentColor = sentVal >= 0.3 ? 'var(--green)' : sentVal <= -0.2 ? 'var(--red)' : 'var(--amber)';
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric-item"><div class="m-label">Ticket prom</div><div class="m-val">${m.ticket_prom}</div><div class="m-sub">promedio del cluster</div></div>
+    <div class="metric-item"><div class="m-label">Días sin login</div><div class="m-val">${m.dias_sin_login}</div><div class="m-sub">días desde última txn</div></div>
+    <div class="metric-item"><div class="m-label">Sentimiento</div><div class="m-val" style="color:${sentColor}">${m.sentimiento}</div><div class="m-sub">score NLP</div></div>
+    <div class="metric-item"><div class="m-label">Txn fallidas</div><div class="m-val">${m.tasa_fallo}</div><div class="m-sub">del total</div></div>
+  `;
+}
+
+// ── CHAT HEADER ───────────────────────────────────────────────
+function renderHeader(c) {
+  const avatarLetras = { nomina:'A', negocio:'R', dormido:'M', riesgo:'C' };
+  const avatarNombres = {
+    nomina:  'Ana García · 26 años · CDMX',
+    negocio: 'Roberto Méndez · 41 años · MTY',
+    dormido: 'María López · 34 años · GDL',
+    riesgo:  'Carlos Vega · 29 años · MTY',
+  };
+  const metaDesc = {
+    nomina:  'Nómina domiciliada · delivery frecuente',
+    negocio: 'Empresario · 4 productos activos',
+    dormido: 'Sin actividad reciente · 1 producto',
+    riesgo:  'Patrón atípico · transacciones fallidas',
+  };
+
+  const tipo = c.tipo || '';
+
+  document.getElementById('u-avatar').textContent  = avatarLetras[tipo]  || c.nombre.charAt(0).toUpperCase();
+  document.getElementById('u-avatar').style.background = c.color;
+  document.getElementById('u-name').textContent    = avatarNombres[tipo] || `${c.icon}  ${c.nombre}`;
+  document.getElementById('u-meta').textContent    = metaDesc[tipo]      || `${c.num_usuarios.toLocaleString()} usuarios · ${c.accion_top}`;
+}
+
+// ── MODE ──────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btn-actual').classList.toggle('active', mode === 'actual');
+  document.getElementById('btn-v2').classList.toggle('active', mode === 'v2');
+  const c = DATA.clusters.find(x => x.id === currentCluster);
+  if (c) renderChat(c);
+}
+
+// ── CHAT ──────────────────────────────────────────────────────
+function renderChat(c) {
+  const wrap = document.getElementById('msgs');
+  wrap.innerHTML = '';
+  const conv = currentMode === 'actual' ? c.conv_actual : c.conv_v2;
+
+  if (currentMode === 'v2') {
+    const banner = document.createElement('div');
+    banner.className = 'proactive-banner fade';
+    banner.innerHTML = '⚡ Havi 2.0 inicia la conversación con datos reales del usuario';
+    wrap.appendChild(banner);
+  }
+
+  conv.forEach((msg, i) => {
+    const el = document.createElement('div');
+    el.className = 'fade';
+    el.style.animationDelay = (i * 0.07) + 's';
+
+    if (msg.type === 'divider') {
+      el.innerHTML = `<div class="divider-msg"><div class="divider-line"></div><span class="divider-txt">${msg.text}</span><div class="divider-line"></div></div>`;
+    } else if (msg.type === 'user') {
+      el.innerHTML = `<div class="msg user">${msg.text}</div>`;
+    } else {
+      const tag = msg.proactive ? '<div class="proactive-tag">⚡ Proactivo</div>' : '';
+      const cls = msg.proactive ? 'msg havi proactive' : 'msg havi';
+      el.innerHTML = `<div class="${cls}">${tag}${msg.text}</div>`;
+    }
+    wrap.appendChild(el);
+  });
+
+  setTimeout(() => { wrap.scrollTop = wrap.scrollHeight; }, 60);
+}
+
+// ── SEND MSG ──────────────────────────────────────────────────
+// ── HISTORIAL DE CONVERSACIÓN (para contexto multi-turno) ─────
+const chatHistory = {};
+
+function getChatHistory(clusterId) {
+  if (!chatHistory[clusterId]) chatHistory[clusterId] = [];
+  return chatHistory[clusterId];
+}
+
+// ── CONSTRUIR SYSTEM PROMPT CON GESTIÓN EMOCIONAL VÍA CLAUDE ──
+function buildSystemPrompt(c) {
+  const m       = c.metricas  || {};
+  const senales = (c.senales      || []).map(s => '• ' + s.text.replace(/<[^>]+>/g,''));
+  const acciones= (c.top_acciones || []).map(a => `• ${a.nombre} (score: ${a.score})`);
+
+  const modoActual = currentMode === 'v2'
+    ? 'PROACTIVO — tú inicias la conversación con datos reales del usuario'
+    : 'REACTIVO — responde lo que el usuario pregunta sin contexto adicional';
+
+  return `Eres Havi 2.0, el asistente financiero inteligente de Hey Banco.
+Tu objetivo es resolver y conectar con cada usuario de forma genuinamente humana, cálida y responsable.
+
+━━━ MODO ACTUAL ━━━
+${modoActual}
+
+━━━ PERFIL DEL USUARIO (datos reales del modelo de clustering) ━━━
+• Segmento: ${c.nombre} (${c.pct_usuarios}% de la base)
+• Ticket promedio: ${m.ticket_prom || 'N/A'}
+• Días sin login: ${m.dias_sin_login || 'N/A'}
+• Tasa de transacciones fallidas: ${m.tasa_fallo || 'N/A'}
+• Utilización de crédito: ${m.utilizacion_credito || 'N/A'}
+
+━━━ SEÑALES DETECTADAS ━━━
+${senales.join('\n') || '• Sin señales activas'}
+
+━━━ ACCIONES RECOMENDADAS ━━━
+${acciones.join('\n') || '• Sin acciones calculadas'}
+
+━━━ PRINCIPIOS DE RESPONSABILIDAD FINANCIERA ━━━
+- Basa tus respuestas ÚNICAMENTE en los datos disponibles del cluster — no inventes cifras
+- Si no tienes información suficiente para responder algo, dilo claramente y con naturalidad
+- Nunca prometas aprobaciones bancarias definitivas ni resultados garantizados
+- Nunca digas que puedes realizar acciones reales como activar productos, aprobar créditos o mover dinero
+- Puedes explicar recomendaciones, riesgos y oportunidades usando los datos disponibles
+- Cuando hagas una recomendación, deja claro que es una sugerencia basada en su perfil
+
+━━━ INTELIGENCIA EMOCIONAL — TU REGLA MÁS IMPORTANTE ━━━
+Antes de responder, detecta la emoción del mensaje actual del usuario:
+
+Si el usuario expresa FRUSTRACIÓN o ENOJO (quejas, groserías, "no funciona", "siempre pasa"):
+→ NUNCA empieces con "¡Hola!" ni con una oferta
+→ Empieza reconociendo su experiencia: "Entiendo perfectamente tu molestia" o "Tienes toda la razón"
+→ Primero resuelve, después (si aplica) recomienda
+→ Tono: calmado, empático, sin rodeos
+
+Si el usuario expresa URGENCIA o PREOCUPACIÓN (pagos pendientes, límite cerca, bloqueos):
+→ Ve directo a la solución, no hagas preguntas innecesarias
+→ Dile exactamente qué puede pasar y qué opciones tiene
+→ Tono: seguro, eficiente, tranquilizador
+
+Si el usuario está CONFUNDIDO o hace preguntas básicas:
+→ Explica simple, sin tecnicismos, como si hablaras con un amigo
+→ Usa ejemplos concretos con datos reales de su perfil cuando los tengas
+→ Tono: paciente, claro, cercano
+
+Si el usuario está SATISFECHO o curioso (preguntas de productos, cashback, beneficios):
+→ Sé entusiasta pero sin exagerar ni prometer
+→ Puedes sugerir opciones basadas en su perfil, aclarando que son recomendaciones
+→ Tono: cálido, motivador, directo
+
+━━━ REGLAS DE COMUNICACIÓN HUMANA ━━━
+- Máximo 3 oraciones por respuesta — la brevedad es respeto
+- Español mexicano natural: "ahorita", "¿cómo ves?", "te cuento"
+- Usa datos concretos del perfil cuando refuercen tu respuesta
+- Haz UNA sola pregunta al final, nunca dos
+- Nunca uses asteriscos, bullets ni markdown — texto plano siempre
+- Nunca menciones que eres IA, que usas clustering ni machine learning
+- Si algo no funcionó o salió mal: reconócelo primero, sin excusas`;
+}
+
+// ── TYPING INDICATOR ──────────────────────────────────────────
+function showTyping(wrap) {
+  const el = document.createElement('div');
+  el.id = 'typing-indicator';
+  el.className = 'fade';
+  el.innerHTML = `<div class="msg havi" style="display:flex;gap:5px;align-items:center;padding:12px 16px">
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:pulse 1s infinite"></span>
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:pulse 1s .2s infinite"></span>
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:pulse 1s .4s infinite"></span>
+  </div>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+  return el;
+}
+
+// ── SEND MSG CON CLAUDE ───────────────────────────────────────
+async function sendMsg() {
+  const inp = document.getElementById('inp');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+
+  const wrap  = document.getElementById('msgs');
+  const c     = DATA.clusters.find(x => x.id === currentCluster);
+  const isV2  = currentMode === 'v2';
+  const history = getChatHistory(currentCluster);
+
+  // Mostrar mensaje del usuario
+  const userEl = document.createElement('div');
+  userEl.className = 'fade';
+  userEl.innerHTML = `<div class="msg user">${txt}</div>`;
+  wrap.appendChild(userEl);
+  wrap.scrollTop = wrap.scrollHeight;
+
+  // Agregar al historial
+  history.push({ role: 'user', content: txt });
+
+  // Mostrar typing indicator
+  const typingEl = showTyping(wrap);
+
+  // Deshabilitar input mientras espera
+  inp.disabled = true;
+  document.querySelector('.send-btn').disabled = true;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': document.getElementById('apikey-input').value.trim(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system:     buildSystemPrompt(c),
+        messages:   history,
+      })
+    });
+
+    const data = await response.json();
+    const respText = data.content?.[0]?.text || 'Lo siento, no pude procesar tu mensaje.';
+
+    // Agregar respuesta al historial
+    history.push({ role: 'assistant', content: respText });
+
+    // Quitar typing y mostrar respuesta
+    typingEl.remove();
+    const tag = isV2 ? '<div class="proactive-tag">⚡ Claude · Proactivo</div>' : '';
+    const cls = isV2 ? 'msg havi proactive' : 'msg havi';
+    const haviEl = document.createElement('div');
+    haviEl.className = 'fade';
+    haviEl.innerHTML = `<div class="${cls}">${tag}${respText}</div>`;
+    wrap.appendChild(haviEl);
+
+  } catch(err) {
+    // Fallback si Claude no está disponible
+    typingEl.remove();
+    const fallback = isV2
+      ? `Con base en tu perfil (${c?.nombre || 'usuario'}), la acción más relevante ahora es: <strong>${c?.accion_top || 'revisar tu cuenta'}</strong>. ¿Te doy más detalles?`
+      : 'Entendido. ¿En qué más te puedo ayudar?';
+    const cls = isV2 ? 'msg havi proactive' : 'msg havi';
+    const tag = isV2 ? '<div class="proactive-tag">⚡ Proactivo</div>' : '';
+    const haviEl = document.createElement('div');
+    haviEl.className = 'fade';
+    haviEl.innerHTML = `<div class="${cls}">${tag}${fallback}</div>`;
+    wrap.appendChild(haviEl);
+  } finally {
+    inp.disabled = false;
+    document.querySelector('.send-btn').disabled = false;
+    inp.focus();
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+}
+
+// ── RIGHT PANEL ───────────────────────────────────────────────
+function rTab(tab, btn) {
+  currentRTab = tab;
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const c = DATA.clusters.find(x => x.id === currentCluster);
+  if (c) renderRPanel(c);
+}
+
+function renderRPanel(c) {
+  const body = document.getElementById('rbody');
+  if (currentRTab === 'features') {
+    body.innerHTML = c.feature_cards.map(f => `
+      <div class="fcard">
+        <div class="fcard-label">${f.label}</div>
+        <div class="fcard-val">${f.val}</div>
+        <div class="fcard-bar"><div class="fcard-fill" style="width:${f.bar}%;background:${c.color}"></div></div>
+      </div>`).join('');
+  } else if (currentRTab === 'acciones') {
+    body.innerHTML = c.top_acciones.map(a => `
+      <div class="acard ${a.top ? 'top' : ''}">
+        <div class="acard-head">
+          <span class="acard-name">${a.nombre}</span>
+          <span class="acard-score" style="color:${a.score > 0.7 ? 'var(--green)' : a.score > 0.5 ? 'var(--amber)' : 'var(--t3)'}">${a.score}</span>
+        </div>
+        <div class="sbar"><div class="sfill" style="width:${Math.round(a.score*100)}%;background:${a.score>0.7?'var(--green)':a.score>0.5?'var(--amber)':'var(--t3)'}"></div></div>
+      </div>`).join('');
+  } else {
+    body.innerHTML = c.senales.map(s => {
+      const isBert = s.icon === '🤖';
+      return `<div class="signal${isBert ? ' bert' : ''}">
+        <span class="signal-icon">${s.icon}</span>
+        <span class="signal-text">${s.text}</span>
+        ${isBert ? '<span style="font-size:9px;color:var(--t3);margin-left:auto;padding-left:8px;white-space:nowrap">BERT · pysentimiento</span>' : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── PCA SCATTER ───────────────────────────────────────────────
+function buildPCA() {
+  const ctx = document.getElementById('pcaChart').getContext('2d');
+  const datasets = DATA.clusters.map(c => ({
+    label: c.nombre,
+    data: c.pca_sample.map(p => ({x: p.x, y: p.y})),
+    backgroundColor: c.color + '88',
+    borderColor: c.color,
+    borderWidth: 1,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+  }));
+  pcaChart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.dataset.label } } },
+      scales: {
+        x: { display: false },
+        y: { display: false },
+      },
+      animation: { duration: 400 },
+    }
+  });
+}
+
+function highlightPCA(id) {
+  if (!pcaChart) return;
+  pcaChart.data.datasets.forEach((ds, i) => {
+    const c = DATA.clusters[i];
+    ds.pointRadius = c.id === id ? 5 : 2;
+    ds.backgroundColor = c.id === id ? c.color + 'CC' : c.color + '33';
+  });
+  pcaChart.update('none');
+}
+
+// ── SILHOUETTE CHART ──────────────────────────────────────────
+function buildSilhouette() {
+  const ctx = document.getElementById('silChart').getContext('2d');
+  const labels = DATA.elbow.map(e => `k=${e.k}`);
+  const vals   = DATA.elbow.map(e => e.sil);
+  const bestK  = DATA.stats.num_clusters;
+
+  silChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        backgroundColor: DATA.elbow.map(e => e.k === bestK ? 'var(--acc)' : '#EAEAEF'),
+        borderColor:      DATA.elbow.map(e => e.k === bestK ? 'var(--acc)' : '#D8D8E2'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` sil: ${ctx.raw}` } } },
+      scales: {
+        x: { ticks:{ color:'#9898B0', font:{size:9} }, grid:{display:false} },
+        y: { ticks:{ color:'#9898B0', font:{size:9} }, grid:{ color:'#E8E8EE' } },
+      },
+    }
+  });
+}
+
+// ── START ─────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
